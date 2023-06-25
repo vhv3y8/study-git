@@ -429,11 +429,68 @@ Untracked 빼고 적용 = 커밋-커밋(AddCommit, DelCommit, Modify) 모두 적
 
 ### `git switch`
 
-#### 1. 
+1. `git switch <branch>`
+2. `git switch <options> <branch>`
 
-정리하는중...
+#### 1. `git switch <branch>`
 
-git stash도 정리할 예정?
+```
+HEAD를 <branch>로 이동
+Modify 있으면 Abort, 로컬 추가는 놔둠
+```
+
+`git checkout`과 기본적으로 똑같다.
+
+명령어가 조금 더 직관적인 단어이고, 이동에만 좁게 집중하는 느낌이다.
+
+#### 2. 옵션이 있는 포맷
+
+1) `--detached`를 주면 해당 커밋으로 이동함
+
+```
+git switch --detached <start-point>
+```
+
+를 하면 그 브랜치가 아닌 그 브랜치가 가리키는 커밋으로 이동시킴
+
+= detached HEAD로 만듦
+
+2) `-f`를 주면 local changes를 덮어씀
+
+local changes는 위에서 정리했듯이 다음과 같다.
+
+```
+AddIdx, AddWorktree, ModIdx, ModWorktree
+```
+
+원래는 AddIdx는 놔두고, Modify는 있으면 `checkout <branch>`나 `switch <branch>`에서 바로 Abort 시키는데,
+
+`-f` 주면 Untracked(AddWorktree) 빼고 모두 적용시킨다.
+
+즉, Modify는 옵션으로 덮어써달라는 의도를 줬으니 덮어쓰고, AddIdx도 날려버린다.
+
+index, worktree 관점에서 `git reset --hard`와 같다고 생각할 수 있다.
+
+3) `--merge`에 대해 정리해보자.
+
+checkout에서도 똑같은 옵션을 줄 수 있지만 checkout은 이미 복잡하니까 여기서 정리해보자.
+
+`git switch -m first` :
+index에 하나라도 바뀌었으면 안됨
+DelIdx, AddIdx, Modify 모두가 막힘
+`git reset` 해주고 돌리면
+ModWorktree : Conflict 발생 (UU)
+AddWorktree : 놔둠
+DelWorktree : 날림 (적용)
+
+```
+UU Modify.txt
+?? AddIdx.txt
+?? AddWorktree.txt
+```
+```
+AddIdx.txt  AddWorktree.txt  DelCommit.txt  Modify.txt
+```
 
 ### HEAD의 이동에 대한 정리
 
