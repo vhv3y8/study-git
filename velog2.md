@@ -235,7 +235,6 @@ AddCommit.txt  AddIdx.txt  AddWorktree.txt  Modify.txt
 
 apply(나 pop)은 원래 있던대로 그대로 불러와준다.
 
-
 #### 4. `git stash pop [--index] <stash>`
 
 `git stash apply`와 같은데, 적용한 stash를 버린다.
@@ -261,13 +260,201 @@ stash와 자신이 만들어졌던 커밋의 비교를 보여줌
 
 ### `git clean`
 
-1. `git clean <option> -- <pathspec>`
+1. `git clean <option> (-- <pathspec>)`
+
+working tree의 Untracked 파일들을 지운다.
+
+좁은 범위의 역할이고 옵션도 몇 개 없고 심플하다.
 
 #### 1. `git clean <option> -- <pathspec>`
 
+기본값, `-f`일 때
 
+Untracked files를 지운다.
 
+현재 폴더에 있는 것만 지운다.
 
+config의 clean.requireForce가 true면 `-f`를 줘야 실제로 지움
+
+`-d`를 주면
+
+하위 디렉토리에도 적용한다.
+
+파일이 싹 다 Untracked인 디렉토리에 대해서 그렇다.
+
+하나라도 stage되있으면 그 폴더 파일들은 기본으로 clean 대상임
+
+`-n`을 주면
+
+dry run을 할 수 있다.
+
+실제로 지우지 않고 뭘 지울지 미리 알려준다.
+
+```
+$ git clean -n
+Would remove AddWorktree.txt
+```
+
+`-x`를 주면
+
+ignore 파일들도 모두 지운다.
+
+`-X`를 주면
+
+ignore 파일들만 지운다.
+
+`-e`라는 옵션도 있는데, 
+
+이건 패턴으로 ignore할 파일들을 추가할 수 있다고 하는데 쓸 일이 잘 없을 것 같다.
+
+`-x`나 `-X` 같은 옵션 쓸 때 제외할 파일들을 직접 지정할 수 있는 옵션이라고 하는듯하다.
+
+#### `git clean` 예시
+
+실제로 어떻게 돌아가는지 이해하기 위해 예시를 만들어보자.
+
+```
+.gitignore (내용 : Ignore.txt)
+Ignore.txt
+AddWorktree.txt
+(DelWorktree.txt) (로컬에서 지워짐)
+t1/
+  added.txt
+  test1.txt
+  test2.txt
+
+  tt1/
+      added.txt
+      ttest1.txt
+      ttest2.txt
+t2/
+  (없음)
+```
+
+커밋은 하나 뿐이고 커밋에는 `.gitignore` 파일과 `DelWorktree.txt`를 추가하자.
+
+나머지 파일은 모두 커밋 이후 로컬에서 추가해주고 `git status -s`를 돌리면
+
+```
+ D DelWorktree.txt
+?? AddWorktree.txt
+?? t1/
+```
+
+이런 식으로 된다.
+
+t2는 폴더는 있지만 파일이 없어서 추가되지 않은듯하다.
+
+이 상태에서 각 옵션들을 주면 어떻게 되는지 dry run(`-n`)으로 확인해보자.
+
+기본값은 현재 폴더의 Untracked 파일만 지우므로, 돌려보면
+
+```
+$ git clean -n
+Would remove AddWorktree.txt
+```
+
+이제 `-d` 옵션과 기본값에서 선택되는 파일들에 대해 알아보자.
+
+```
+$ git clean -dn
+Would remove AddWorktree.txt
+Would remove t1/
+Would remove t2/
+```
+
+그런데 `git add t1/added.txt`를 하고나서 기본값을 돌려보면
+
+```
+$ git clean -n
+Would remove AddWorktree.txt
+Would remove t1/test1.txt
+Would remove t1/test2.txt
+```
+
+즉 하나라도 stage 된 파일이 있으면 그 폴더의 파일들은 기본적으로 clean 대상이 된다.
+
+`t1/added.txt` 말고 `t1/tt1/added.txt` 파일만 stage 해주고나서 돌려보면
+
+```
+$ git clean -n
+Would remove AddWorktree.txt
+Would remove t1/added.txt
+Would remove t1/test1.txt
+Would remove t1/test2.txt
+Would remove t1/tt1/ttest1.txt
+Would remove t1/tt1/ttest2.txt
+```
+
+즉 stage 된 파일이 속한 폴더와 상위 폴더까지 모두 적용한다는 걸 알 수 있다.
+
+만약에 `t1/tt2` 폴더를 만들고 그 안에 `ttest1.txt` 같은 파일을 만들더라도 이건 기본 삭제대상은 아니게 된다.
+
+`-d` 옵션을 주면 하위 폴더까지 싹 다 적용한다.
+
+```
+$ git clean -dn
+Would remove AddWorktree.txt
+Would remove t1/
+Would remove t2/
+```
+
+빈 폴더를 포함해서 폴더들까지 싹 다 지우게 된다.
+
+기본 값은 현재 폴더의 파일들을 지운다고 했었다.
+
+그걸 확인하기 위해 이번에는 `t1` 폴더로 이동하고 돌려보자.
+
+```
+$ cd t1
+$ git clean -n
+Would remove ./
+```
+
+`-f`로 실제로 날려보면, 하위 폴더(`tt1`, `tt2`)까지 싹 다 날린다. (???)
+
+이번엔 stage에 `t1/added.txt`만 추가해주고 돌려보자.
+
+```
+$ git add added.txt
+```
+
+```
+$ git clean -n
+Would remove test1.txt
+Would remove test2.txt
+```
+
+```
+$ git clean -dn
+Would remove test1.txt
+Would remove test2.txt
+Would remove tt1/
+Would remove tt2/
+```
+
+이런 식으로 된다.
+
+`-x` 옵션을 주면 ignore 파일들까지 지운다.
+
+```
+$ git clean -xn
+Would remove AddWorktree.txt
+Would remove Ignore.txt
+```
+
+`-X` 옵션을 주면 ignore 파일들만 지운다.
+
+```
+$ git clean -Xn
+Would remove Ignore.txt
+```
+
+실제로 지울 땐 `clean.requireForce`가 true면 `-f`도 같이 줘야한다.
+
+ex) `git clean -fd` 등등
+
+**결론 : `git clean` 하기 전엔 `-n` 옵션으로 어떤 게 지워질지 보고나서 돌리자.**
 
 ### `git reflog`
 
@@ -305,6 +492,8 @@ f7d375d8ab97caae1b6f0b0e6d450b0cbfa15ef7 c7e828300c8c94ab031b7820567d7f72a5d3e85
 `HEAD@{2}`, `master@{one.week.ago}` 이런 식으로 위치를 찾아볼 수 있다고 한다.
 
 시간, 기록 등이 모두 텍스트 형태로 그대로 남아있기 때문에 가능한듯하다.
+
+`reset`, `switch` 등의 명령어에서도 이런 표현들을 쓸 수 있다.
 
 1. `git reflog show <ref>`
 2. `git reflog expire <options>`
