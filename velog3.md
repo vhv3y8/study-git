@@ -111,6 +111,18 @@ CA 기준 변화를 합친다 라는 관점으로 보면 당연히 바뀐 쪽이
 
 #### 1. `git rebase <options> [<upstream> [<branch>]]`
 
+`git rebase <options> <upstream> <branch>`에서
+
+`<branch>`가 주어지면 시작하기 전에 `git switch <branch>`를 먼저 실행한다. 즉 `<branch>`로 옮긴다.
+
+temporary area)
+current branch에서 만들어진 커밋이지만 `<upstream>`에는 없는(`<upstream>..HEAD`) 커밋들이 temporary area로 저장된다.
+
+`--onto`)
+onto 옵션이 주어지면,
+현재 브랜치가 `<upstream>` 또는 `<newbase>`로 'reset' 된다.
+실제로 `git reset --hard <upstream>`을 실행한 것과 마찬가지가 된다.
+
 
 
 #### 2. `git rebase <options> [--root [<branch>]]`
